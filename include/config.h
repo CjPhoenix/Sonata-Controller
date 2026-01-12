@@ -23,9 +23,9 @@ typedef struct {
 void write_config_to_file();
 void update_config_from_file();
 
-void config_init()
+int config_init()
 {
-    sd_card_init();
+    return sd_card_init();
 }
 
 void export_global_config_to_string(char** result)

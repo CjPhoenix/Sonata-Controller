@@ -35,17 +35,19 @@ lv_obj_t *saturation_slider;
 
 void setup() 
 {
+  Serial.begin(115200);
+  Serial.println("Starting setup...");
   // Wait 800ms to wait for voltage to level out when system starts
   // delay(800);
 
-  // config_init();
+  if (!config_init())
+  {
+    // Switch to fully local mode because the SD card cannot be mounted
+  }
 
   lighting_init();
 
   display_init();
-
-  // Delay was present by default, may not be necessary
-  // delay(200);
 
   // Main screen object
   screen = lv_scr_act();
@@ -104,6 +106,7 @@ void setup()
 
   // Turn the screen on to finish setup
   backlight_init();
+  Serial.println("Setup complete. Starting loop.");
 }
 
 char *preview_text = (char*) malloc(sizeof(char) * 128);
