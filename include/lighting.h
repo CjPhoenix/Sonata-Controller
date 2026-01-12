@@ -12,7 +12,7 @@
 #define LED_COUNT_1 144
 // #define LED_COUNT_2 144
 
-#define UPDATE_FLAG_1           0x1
+#define UPDATE_FLAG_SATURATION  0x1
 #define UPDATE_FLAG_BRIGHTNESS  0x2
 #define UPDATE_FLAG_HUE         0x4
 #define UPDATE_FLAG_4           0x8
@@ -30,6 +30,7 @@ void lighting_init()
 
 void update_lighting(int force_all = 0)
 {
+    if (force_all) update_flags = ~0;
     if (update_flags)
     {   
         if (update_flags & UPDATE_FLAG_BRIGHTNESS)
@@ -37,11 +38,11 @@ void update_lighting(int force_all = 0)
             FastLED.setBrightness(GLOBAL_CONFIG.is_lighting_on ? GLOBAL_CONFIG.brightness : 0);
         }
 
-        if (update_flags & UPDATE_FLAG_HUE)
+        if (update_flags & (UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION))
         {
             for (int i = 0; i < LED_COUNT_1; i++)
             {
-                strip1[i] = CHSV((uint8_t)(GLOBAL_CONFIG.lighting_hue), 255, 255);
+                strip1[i] = CHSV((uint8_t)(GLOBAL_CONFIG.lighting_hue), (uint8_t)(GLOBAL_CONFIG.saturation), 255);
             }
 
             // for (int i = 0; i < LED_COUNT_2; i++)
@@ -72,4 +73,10 @@ void set_hue(int hue)
 {
     GLOBAL_CONFIG.lighting_hue = hue;
     update_flags |= UPDATE_FLAG_HUE;
+}
+
+void set_saturation(int saturation)
+{
+    GLOBAL_CONFIG.saturation = saturation;
+    update_flags |= UPDATE_FLAG_SATURATION;
 }

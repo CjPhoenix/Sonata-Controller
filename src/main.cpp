@@ -16,13 +16,11 @@ lv_color_t C_SLIDER_INDIC_ON   = lv_color_hex(0x888888);
 #define LV_HOR_RES_MAX 800
 #define LV_VER_RES_MAX 480
 
-void on_write_to_config_button_clicked(lv_event_t*);
-void on_read_config_button_clicked(lv_event_t*);
 void on_toggle_button_clicked(lv_event_t*);
 void on_brightness_slider_adjusted(lv_event_t*);
 void on_hue_slider_adjusted(lv_event_t*);
+void on_saturation_slider_adjusted(lv_event_t*);
 
-void write_config_task(void*);
 void update_from_file();
 
 lv_obj_t* screen;
@@ -30,7 +28,7 @@ lv_obj_t *toggle_button;
 lv_obj_t *toggle_button_label;
 lv_obj_t *hue_slider;
 lv_obj_t *brightness_slider;
-
+lv_obj_t *saturation_slider;
 
 void setup() 
 {
@@ -63,11 +61,6 @@ void setup()
   lv_label_set_text(toggle_button_label, "Toggle");
   lv_obj_set_style_bg_color(toggle_button_label, C_BUTTON_TEXT, LV_PART_MAIN);
 
-  // // Lighting shadow behind toggle button
-  // toggle_button_shadow = lv_obj_create(screen);
-  // lv_obj_center(toggle_button);
-  // lv_obj_set_style_bg_grad(toggle_button_shadow, lv_grad_)
-
   // Brightness slider
   brightness_slider = lv_slider_create(screen);
   lv_slider_set_range(brightness_slider, 0, 255);
@@ -90,6 +83,16 @@ void setup()
   lv_obj_set_style_bg_color(hue_slider, C_SLIDER_INDIC_ON, LV_PART_INDICATOR);
   lv_obj_set_style_translate_y(hue_slider, 140, LV_PART_MAIN);
 
+  // Saturation slider
+  saturation_slider = lv_slider_create(screen);
+  lv_slider_set_range(saturation_slider, 0, 255);
+  lv_slider_set_value(saturation_slider, GLOBAL_CONFIG.saturation, LV_ANIM_OFF);
+  lv_obj_add_event_cb(saturation_slider, on_saturation_slider_adjusted, LV_EVENT_RELEASED, NULL);
+  lv_obj_center(saturation_slider);
+  lv_obj_set_style_bg_color(saturation_slider, C_SLIDER_INDIC_ON, LV_PART_KNOB);
+  lv_obj_set_style_bg_color(saturation_slider, C_SLIDER_INDIC_OFF, LV_PART_MAIN);
+  lv_obj_set_style_bg_color(saturation_slider, C_SLIDER_INDIC_ON, LV_PART_INDICATOR);
+  lv_obj_set_style_translate_y(saturation_slider, 180, LV_PART_MAIN);
 
   // Final initialisation
   update_from_file();
@@ -99,7 +102,7 @@ char *preview_text = (char*) malloc(sizeof(char) * 128);
 void loop() 
 {
   update_lighting();
-  lv_obj_set_style_shadow_color(toggle_button, lv_color_hsv_to_rgb(GLOBAL_CONFIG.lighting_hue * 360 / 255, 100, GLOBAL_CONFIG.brightness * GLOBAL_CONFIG.is_lighting_on * 100 / 255), LV_PART_MAIN);
+  lv_obj_set_style_shadow_color(toggle_button, lv_color_hsv_to_rgb(GLOBAL_CONFIG.lighting_hue * 360 / 255, GLOBAL_CONFIG.saturation * 100 / 255, GLOBAL_CONFIG.brightness * GLOBAL_CONFIG.is_lighting_on * 100 / 255), LV_PART_MAIN);
 
   lv_timer_handler();
 
@@ -124,6 +127,11 @@ void on_hue_slider_adjusted(lv_event_t*)
   set_hue(lv_slider_get_value(hue_slider));
 }
 
+void on_saturation_slider_adjusted(lv_event_t*)
+{
+  set_saturation(lv_slider_get_value(saturation_slider));
+}
+
 void update_from_file()
 {
   // Update local data
@@ -132,6 +140,7 @@ void update_from_file()
   // Update UI to match new local data
   lv_slider_set_value(brightness_slider, GLOBAL_CONFIG.brightness, LV_ANIM_OFF);
   lv_slider_set_value(hue_slider, GLOBAL_CONFIG.lighting_hue, LV_ANIM_OFF);
+  lv_slider_set_value(saturation_slider, GLOBAL_CONFIG.saturation, LV_ANIM_OFF);
 
   // Update lighting to match new local data
   update_lighting(1);

@@ -7,6 +7,7 @@
 
 typedef struct {
     int lighting_hue;
+    int saturation;
     int brightness;
     int is_lighting_on;
 } Config;
@@ -30,8 +31,9 @@ void config_init()
 void export_global_config_to_string(char** result)
 {
     snprintf(*result, CONFIG_BUFFER_SIZE, 
-        "%d %d %d\r", 
+        "%d %d %d %d\r", 
         GLOBAL_CONFIG.lighting_hue,
+        GLOBAL_CONFIG.saturation,
         GLOBAL_CONFIG.brightness,
         GLOBAL_CONFIG.is_lighting_on
     );
@@ -47,10 +49,12 @@ void write_config_to_file()
 
 void update_config_from_file()
 {
-    GLOBAL_CONFIG.is_lighting_on = 1;
-    GLOBAL_CONFIG.lighting_hue = 0;
-    GLOBAL_CONFIG.brightness = 255;
-
+    GLOBAL_CONFIG = {
+        .lighting_hue = 0,
+        .saturation = 255,
+        .brightness = 255,
+        .is_lighting_on = 1
+    };
     // String file_contents = read_file(CONFIG_FILE);
     // file_contents.toCharArray(CONFIG_BUFFER, CONFIG_BUFFER_SIZE);
     
