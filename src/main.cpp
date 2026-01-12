@@ -26,17 +26,11 @@ void write_config_task(void*);
 void update_from_file();
 
 lv_obj_t* screen;
-lv_obj_t *write_to_config_button;
-lv_obj_t *write_to_config_button_label;
-lv_obj_t *read_config_button;
-lv_obj_t *read_config_button_label;
 lv_obj_t *toggle_button;
 lv_obj_t *toggle_button_label;
-lv_obj_t *toggle_button_shadow;
 lv_obj_t *hue_slider;
 lv_obj_t *brightness_slider;
 
-lv_obj_t *global_config_preview;
 
 void setup() 
 {
@@ -115,16 +109,6 @@ void loop()
   delay(5);
 }
 
-void on_write_to_config_button_clicked(lv_event_t*)
-{
-  // xTaskCreate(write_config_task, "write_config", 4096, NULL, 1, NULL);
-}
-
-void on_read_config_button_clicked(lv_event_t*)
-{
-  // update_from_file();
-}
-
 void on_toggle_button_clicked(lv_event_t*)
 {
   toggle_lighting();
@@ -138,14 +122,6 @@ void on_brightness_slider_adjusted(lv_event_t*)
 void on_hue_slider_adjusted(lv_event_t*)
 {
   set_hue(lv_slider_get_value(hue_slider));
-}
-
-void write_config_task(void*)
-{
-  lv_obj_add_state(write_to_config_button, LV_STATE_DISABLED);
-  // write_config();
-  lv_obj_clear_state(write_to_config_button, LV_STATE_DISABLED);
-  // vTaskDelete(NULL);
 }
 
 void update_from_file()
