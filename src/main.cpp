@@ -5,6 +5,9 @@
 #include "display.h"
 #include "lighting.h"
 
+// Enable to update lighting live from sliders instead of when released
+#define FAST_LIGHTING_UPDATES 1
+
 // Theme colors
 lv_color_t C_BACKGROUND        = lv_color_hex(0x000000);
 lv_color_t C_BUTTON_BACKGROUND = lv_color_hex(0x444444);
@@ -42,8 +45,7 @@ void setup()
   display_init();
 
   // Delay was present by default, may not be necessary
-  delay(200);
-  backlight_init();
+  // delay(200);
 
   // Main screen object
   screen = lv_scr_act();
@@ -65,8 +67,9 @@ void setup()
   brightness_slider = lv_slider_create(screen);
   lv_slider_set_range(brightness_slider, 0, 255);
   lv_slider_set_value(brightness_slider, GLOBAL_CONFIG.lighting_hue, LV_ANIM_OFF);
-  lv_obj_add_event_cb(brightness_slider, on_brightness_slider_adjusted, LV_EVENT_RELEASED, NULL);
+  lv_obj_add_event_cb(brightness_slider, on_brightness_slider_adjusted, FAST_LIGHTING_UPDATES ? LV_EVENT_VALUE_CHANGED : LV_EVENT_RELEASED, NULL);
   lv_obj_center(brightness_slider);
+  lv_obj_set_width(brightness_slider, 640);
   lv_obj_set_style_bg_color(brightness_slider, C_SLIDER_INDIC_ON, LV_PART_KNOB);
   lv_obj_set_style_bg_color(brightness_slider, C_SLIDER_INDIC_OFF, LV_PART_MAIN);
   lv_obj_set_style_bg_color(brightness_slider, C_SLIDER_INDIC_ON, LV_PART_INDICATOR);
@@ -76,8 +79,9 @@ void setup()
   hue_slider = lv_slider_create(screen);
   lv_slider_set_range(hue_slider, 0, 255);
   lv_slider_set_value(hue_slider, GLOBAL_CONFIG.lighting_hue, LV_ANIM_OFF);
-  lv_obj_add_event_cb(hue_slider, on_hue_slider_adjusted, LV_EVENT_RELEASED, NULL);
+  lv_obj_add_event_cb(hue_slider, on_hue_slider_adjusted, FAST_LIGHTING_UPDATES ? LV_EVENT_VALUE_CHANGED : LV_EVENT_RELEASED, NULL);
   lv_obj_center(hue_slider);
+  lv_obj_set_width(hue_slider, 640);
   lv_obj_set_style_bg_color(hue_slider, C_SLIDER_INDIC_ON, LV_PART_KNOB);
   lv_obj_set_style_bg_color(hue_slider, C_SLIDER_INDIC_OFF, LV_PART_MAIN);
   lv_obj_set_style_bg_color(hue_slider, C_SLIDER_INDIC_ON, LV_PART_INDICATOR);
@@ -87,8 +91,9 @@ void setup()
   saturation_slider = lv_slider_create(screen);
   lv_slider_set_range(saturation_slider, 0, 255);
   lv_slider_set_value(saturation_slider, GLOBAL_CONFIG.saturation, LV_ANIM_OFF);
-  lv_obj_add_event_cb(saturation_slider, on_saturation_slider_adjusted, LV_EVENT_RELEASED, NULL);
+  lv_obj_add_event_cb(saturation_slider, on_saturation_slider_adjusted, FAST_LIGHTING_UPDATES ? LV_EVENT_VALUE_CHANGED : LV_EVENT_RELEASED, NULL);
   lv_obj_center(saturation_slider);
+  lv_obj_set_width(saturation_slider, 640);
   lv_obj_set_style_bg_color(saturation_slider, C_SLIDER_INDIC_ON, LV_PART_KNOB);
   lv_obj_set_style_bg_color(saturation_slider, C_SLIDER_INDIC_OFF, LV_PART_MAIN);
   lv_obj_set_style_bg_color(saturation_slider, C_SLIDER_INDIC_ON, LV_PART_INDICATOR);
@@ -96,6 +101,9 @@ void setup()
 
   // Final initialisation
   update_from_file();
+
+  // Turn the screen on to finish setup
+  backlight_init();
 }
 
 char *preview_text = (char*) malloc(sizeof(char) * 128);
