@@ -23,6 +23,9 @@ typedef struct {
 void write_config_to_file();
 void update_config_from_file();
 
+/**
+ * Returns 1 if the persistent config could not be connected
+ */
 int config_init()
 {
     return sd_card_init();

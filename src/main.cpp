@@ -21,7 +21,7 @@ void setup()
   // Wait 800ms to wait for voltage to level out when system starts
   // delay(800);
 
-  if (config_init()) update_config_from_file();
+  if (!config_init()) update_config_from_file();
 
   lighting_init();
 

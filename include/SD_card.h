@@ -13,17 +13,20 @@ void write_to_file(const char* filename, const char* data);
 void delete_file(const char* filename);
 String read_file(const char* filename);
 
+/**
+ * Returns 1 if SD card failed to mount
+ */
 int sd_card_init()
 {
     SD_SPI.begin(SD_SCK, SD_MISO, SD_MOSI, SD_CS);
     if (!SD.begin(SD_CS, SD_SPI, 80000000)) {
         Serial.println("Failed to mount SD card!");
-        return 0;
+        return 1;
     }
     else
     {
         Serial.println("Successfully mounted SD card.");
-        return 1;
+        return 0;
     }
 }
 
