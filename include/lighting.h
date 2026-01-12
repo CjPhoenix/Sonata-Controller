@@ -28,7 +28,10 @@ void lighting_init()
     // FastLED.addLeds<WS2812, LED_PIN_2, GRB>(strip2, LED_COUNT_2);
 }
 
-void update_lighting(int force_all = 0)
+/**
+ * Returns true if any lighting data was changed
+ */
+int update_lighting(int force_all = 0)
 {
     if (force_all) update_flags = ~0;
     if (update_flags)
@@ -53,8 +56,13 @@ void update_lighting(int force_all = 0)
 
         update_flags = 0;
         FastLED.show();
+
+        return 1;
     }
-    return;
+    else
+    {
+        return 0;
+    }
 }
 
 void toggle_lighting()
