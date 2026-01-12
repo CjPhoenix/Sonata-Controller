@@ -9,6 +9,7 @@
 #define LV_HOR_RES_MAX 800
 #define LV_VER_RES_MAX 480
 
+void screen_init();
 void update_from_file();
 
 lv_obj_t* screen;
@@ -24,16 +25,8 @@ void setup()
 
   lighting_init();
 
-  display_init();
+  screen_init();
 
-  // Main screen object
-  screen = lv_scr_act();
-  lv_obj_set_style_bg_color(screen, C_BACKGROUND, LV_PART_MAIN);
-
-  widgets_init(screen);
-
-  // Enable backlight and set LEDs to finish setup
-  backlight_init();
   update_lighting(1);
   Serial.println("Setup complete. Starting loop.");
 }
@@ -50,6 +43,22 @@ void loop()
   sleep_backlight_if_inactive(ts.isTouched);
 
   delay(5);
+}
+
+// -------------------
+//      Initialisers
+// -------------------
+void screen_init()
+{
+  display_init();
+
+  // Main screen object
+  screen = lv_scr_act();
+  lv_obj_set_style_bg_color(screen, C_BACKGROUND, LV_PART_MAIN);
+
+  widgets_init(screen);
+
+  backlight_init();
 }
 
 // -------------------
