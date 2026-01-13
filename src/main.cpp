@@ -10,9 +10,6 @@
 #define LV_VER_RES_MAX 480
 
 void screen_init();
-void update_from_file();
-
-int use_persistent_config;
 
 lv_obj_t* screen;
 
@@ -20,23 +17,14 @@ void setup()
 {
   Serial.begin(115200);
   Serial.println("Starting setup...");
-  // Wait 800ms to wait for voltage to level out when system starts
-  // delay(800);
 
-  if (config_init())
-  {
-    use_persistent_config = 0;
-  }
-  else
-  {
-    use_persistent_config = 1;
-  }
+  if (!config_init())
+    update_config_from_file();
 
   lighting_init();
 
   screen_init();
 
-  update_from_file();
   Serial.println("Setup complete. Starting loop.");
 }
 
@@ -68,24 +56,4 @@ void screen_init()
   widgets_init(screen);
 
   backlight_init();
-}
-
-// -------------------
-//      Utility
-// -------------------
-void update_from_file()
-{
-  if (!use_persistent_config) return;
-  
-  // Update local data
-  update_config_from_file();
-
-  // Update UI to match new local data
-  lv_slider_set_value(brightness_slider, GLOBAL_CONFIG.brightness, LV_ANIM_OFF);
-  lv_slider_set_value(hue_slider, GLOBAL_CONFIG.lighting_hue, LV_ANIM_OFF);
-  lv_slider_set_value(saturation_slider, GLOBAL_CONFIG.saturation, LV_ANIM_OFF);
-
-  // Update lighting to match new local data
-  update_lighting(1);
-  lv_obj_set_style_shadow_color(toggle_button, lv_color_hsv_to_rgb(GLOBAL_CONFIG.lighting_hue * 360 / 255, GLOBAL_CONFIG.saturation * 100 / 255, GLOBAL_CONFIG.brightness * GLOBAL_CONFIG.is_lighting_on * 100 / 255), LV_PART_MAIN);
 }

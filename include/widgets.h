@@ -29,7 +29,7 @@ void widgets_init(lv_obj_t* screen)
   lv_obj_add_event_cb(toggle_button, on_toggle_button_clicked, LV_EVENT_CLICKED, NULL);
   lv_obj_center(toggle_button);
   lv_obj_set_style_bg_color(toggle_button, C_BUTTON_BACKGROUND, LV_PART_MAIN);
-  lv_obj_set_style_shadow_color(toggle_button, lv_color_hsv_to_rgb(0, 100, 100), LV_PART_MAIN);
+  lv_obj_set_style_shadow_color(toggle_button, lv_color_hsv_to_rgb(GLOBAL_CONFIG.lighting_hue * 360 / 255, GLOBAL_CONFIG.saturation * 100 / 255, GLOBAL_CONFIG.brightness * GLOBAL_CONFIG.is_lighting_on * 100 / 255), LV_PART_MAIN);
   lv_obj_set_style_shadow_spread(toggle_button, 10, LV_PART_MAIN);
   lv_obj_set_style_shadow_width(toggle_button, 85, LV_PART_MAIN);
   toggle_button_label = lv_label_create(toggle_button);

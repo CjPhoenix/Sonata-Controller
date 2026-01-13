@@ -21,9 +21,15 @@ unsigned int update_flags = ~0;
 
 CRGB strip1[LED_COUNT_1];
 
+void lighting_init();
+int update_lighting(int);
+
+
 void lighting_init()
 {
     FastLED.addLeds<WS2812, LED_PIN_1, GRB>(strip1, LED_COUNT_1);
+
+    update_lighting(1);
 }
 
 /**
