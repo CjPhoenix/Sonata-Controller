@@ -8,7 +8,7 @@
 // ----------------------------------------
 // HARDWARE DEFINITIONS
 // ----------------------------------------
-#define LED_PIN_1   38
+#define LED_PIN_1   6
 #define LED_COUNT_1 144
 
 #define FAST_LIGHTING_UPDATES 1
@@ -40,7 +40,6 @@
 #define AP_RAINBOW_SPEED animation_params[0]
 
 // Lighting updates and timestamps
-int64_t init_time;
 bool first_update_called;
 unsigned int update_flags;
 
@@ -49,7 +48,7 @@ CRGB strip1[LED_COUNT_1];
 
 // Variables for animation configuration
 int animation_params[ANIMATION_PARAMETER_COUNT];
-int64_t animation_start_time;
+unsigned long animation_start_time;
 
 // ----------------------------------------
 // FUNCTION DEFINITIONS
@@ -112,7 +111,7 @@ int update_lighting(int force_all = 0)
 
     else if (GLOBAL_CONFIG.animation_index)
     {
-        int64_t dt = esp_timer_get_time() - animation_start_time;
+        unsigned long dt = millis() - animation_start_time;
 
         // ------------------------------------------------------
         // PULSE LINEAR
@@ -154,7 +153,7 @@ int update_lighting(int force_all = 0)
             // Map hue from (0 to LED_COUNT_1) to (0 to 255), shift by dt
             for (int i = 0; i < LED_COUNT_1; i++)
             {
-                strip1[i] = CHSV(((i * 255 / LED_COUNT_1) + dt) % 255, GLOBAL_CONFIG.saturation, GLOBAL_CONFIG.brightness);
+                strip1[i] = CHSV(((i * 255 / LED_COUNT_1) + dt) % 255, GLOBAL_CONFIG.saturation, 255);
             }
         }
 
@@ -174,7 +173,7 @@ void update_animation()
         if (GLOBAL_CONFIG.animation_index != -1)
         {
             // New animation started
-            animation_start_time = esp_timer_get_time();
+            animation_start_time = millis();
         }
         else
         {
@@ -221,5 +220,5 @@ void set_animation(int animation_index, const int* params, int params_size)
 
 void set_all_flags()
 {
-    update_flags = UPDATE_FLAG_BRIGHTNESS | UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION;
+    update_flags = UPDATE_FLAG_BRIGHTNESS | UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION | UPDATE_FLAG_ANIMATION;
 }

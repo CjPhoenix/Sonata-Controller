@@ -1,5 +1,7 @@
+#pragma once
+
 #include <lvgl.h>
-#include "lighting.h"
+#include "controller.h"
 
 // Theme colors
 lv_color_t C_BACKGROUND        = lv_color_hex(0x000000);

@@ -1,6 +1,6 @@
-# Lighting Controller
+# Sonata Lighting Display
 
-An ESP32-based lighting controller with a touchscreen UI, designed for vehicle interior / ambient lighting control. The system uses **LVGL** for the interface and supports persistent configuration storage via SD card.
+An ESP32-based touchscreen display for vehicle interior / ambient lighting control. The display owns the **LVGL** interface, wireless config updates, and persistent configuration storage via SD card. LED hardware control lives in the sibling `Controller` PlatformIO project.
 
 ---
 
@@ -8,15 +8,12 @@ An ESP32-based lighting controller with a touchscreen UI, designed for vehicle i
 
 - **Backlight with automatic sleep**
   - Display backlight turns off after inactivity to reduce power draw.
-- **Support for multiple LED strips**
-  - Modular design intended to scale to multiple outputs.
 - **Persistent configuration (SD card)**
   - Lighting settings are saved and restored on boot.
 - **LVGL-based UI**
   - Touch-friendly interface with smooth rendering.
-- **Live LED updates**
-  - Enable real-time LED changes while adjusting settings by setting  
-    `FAST_LIGHTING_UPDATES 1` in `lighting.h`.
+- **One-way lighting control**
+  - Sends lighting state to the Arduino controller over serial TX on GPIO 5.
 
 ---
 
@@ -32,10 +29,16 @@ To update LEDs live while making adjustments in the UI:
 
 ### Pin Assignments
 
-**LED strip pin:** Defined in `lighting.h`
+**Display serial TX:** Defined in `include/controller.h`
 
 ```c
-#define LED_PIN_1   38
+#define CONTROLLER_TX_PIN 5
+```
+
+**LED strip pin:** Defined in `../Controller/include/lighting.h`
+
+```c
+#define LED_PIN_1 6
 ```
 
 ## Planned Features
@@ -56,10 +59,10 @@ To update LEDs live while making adjustments in the UI:
 - MCU: ESP32
 - UI: LVGL
 - Storage: SD card
-- LED Control: Addressable LED strips (WS2812-class)
+- LED Control: Addressable LED strips (WS2812-class) via sibling Arduino controller
 
 ## Notes
 
-Ensure proper 3.3 V decoupling near the ESP32 for stable operation.
+Ensure the ESP32 display and Arduino controller share a common ground. The serial link is one-way from ESP32 GPIO 5 to Arduino pin 5.
 
 Designed with automotive environments in mind (noisy power rails).

@@ -1,10 +1,10 @@
 #include <lvgl.h>
 #include <Wire.h>
-#include <FastLED.h>
 
 #include "widgets.h"
 #include "display.h"
 #include "wireless.h"
+#include "controller.h"
 
 // Screen size information
 #define LV_HOR_RES_MAX 800
@@ -23,11 +23,11 @@ void setup()
   if (!config_init())
     update_config_from_file();
 
-  lighting_init();
-
   wireless_init();
 
   screen_init();
+
+  controller_init();
 
   startup();
 
@@ -73,7 +73,7 @@ void startup()
   {
     set_brightness(i);
     delay(2);
-    update_lighting();
+    update_lighting(1);
   }
 
   // Clear screen image

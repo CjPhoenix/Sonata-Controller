@@ -1,3 +1,5 @@
+#pragma once
+
 #include <Wire.h>
 #include <TAMC_GT911.h>
 
