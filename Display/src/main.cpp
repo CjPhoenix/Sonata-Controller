@@ -15,7 +15,7 @@ void startup();
 
 lv_obj_t* screen;
 
-void setup() 
+void setup()
 {
   Serial.begin(115200);
   Serial.println("Starting setup...");
@@ -35,10 +35,10 @@ void setup()
 }
 
 char *preview_text = (char*) malloc(sizeof(char) * 128);
-void loop() 
+void loop()
 {
   // Update led strip lighting and display preview to match
-  if (update_lighting()) lv_obj_set_style_shadow_color(toggle_button, lv_color_hsv_to_rgb(GLOBAL_CONFIG.lighting_hue * 360 / 255, GLOBAL_CONFIG.saturation * 100 / 255, GLOBAL_CONFIG.brightness * GLOBAL_CONFIG.is_lighting_on * 100 / 255), LV_PART_MAIN);
+  lv_obj_set_style_shadow_color(toggle_button, lv_color_hsv_to_rgb(GLOBAL_CONFIG.lighting_hue * 360 / 255, GLOBAL_CONFIG.saturation * 100 / 255, GLOBAL_CONFIG.brightness * GLOBAL_CONFIG.is_lighting_on * 100 / 255), LV_PART_MAIN);
 
   lv_timer_handler();
 
@@ -68,13 +68,18 @@ void startup()
 {
   // Set screen image
 
+  // Send global config
+  sync();
+  
   // Lighting animation
-  for (int i = 0; i < 255; i++)
-  {
-    set_brightness(i);
-    delay(2);
-    update_lighting(1);
-  }
+  fire_animation(ANIM_STARTUP);
+
+  // for (int i = 0; i < 255; i++)
+  // {
+  //   set_brightness(i);
+  //   delay(2);
+  //   update_lighting(1);
+  // }
 
   // Clear screen image
 }

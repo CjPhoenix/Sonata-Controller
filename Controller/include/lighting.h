@@ -11,6 +11,9 @@
 #define LED_PIN_1   6
 #define LED_COUNT_1 144
 
+#define LED_PIN_2   7
+#define LED_COUNT_2 144
+
 #define FAST_LIGHTING_UPDATES 1
 
 // ----------------------------------------
@@ -24,6 +27,11 @@
 // ----------------------------------------
 // ANIMATIONS AND PARAMETERS
 // ----------------------------------------
+
+// ONE SHOT
+#define ANIM_STARTUP    1
+
+// CONTINUOUS
 #define ANIMATION_PARAMETER_COUNT 4
 
 #define ANIMATION_PULSE_LINEAR  1
@@ -45,6 +53,7 @@ unsigned int update_flags;
 
 // Lighting hardware references
 CRGB strip1[LED_COUNT_1];
+CRGB strip2[LED_COUNT_2];
 
 // Variables for animation configuration
 int animation_params[ANIMATION_PARAMETER_COUNT];
@@ -57,6 +66,7 @@ void lighting_init();
 int update_lighting(int);
 void update_animation();
 
+void fire_animation(int index);
 void set_brightness(int level);
 void set_hue(int hue);
 void set_saturation(int saturation);
@@ -68,6 +78,7 @@ void set_all_flags();
 void lighting_init()
 {
     FastLED.addLeds<WS2812, LED_PIN_1, GRB>(strip1, LED_COUNT_1);
+    FastLED.addLeds<WS2812, LED_PIN_2, GRB>(strip2, LED_COUNT_2);
 
     // Set all update flags
     set_all_flags();
@@ -93,6 +104,7 @@ int update_lighting(int force_all = 0)
             for (int i = 0; i < LED_COUNT_1; i++)
             {
                 strip1[i] = CHSV((uint8_t)(GLOBAL_CONFIG.lighting_hue), (uint8_t)(GLOBAL_CONFIG.saturation), 255);
+                strip2[i] = CHSV((uint8_t)(GLOBAL_CONFIG.lighting_hue), (uint8_t)(GLOBAL_CONFIG.saturation), 255);
             }
             update_flags &= ~(UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION);
         }
@@ -154,6 +166,7 @@ int update_lighting(int force_all = 0)
             for (int i = 0; i < LED_COUNT_1; i++)
             {
                 strip1[i] = CHSV(((i * 255 / LED_COUNT_1) + dt) % 255, GLOBAL_CONFIG.saturation, 255);
+                strip2[i] = CHSV(((i * 255 / LED_COUNT_2) + dt) % 255, GLOBAL_CONFIG.saturation, 255);
             }
         }
 
@@ -186,6 +199,40 @@ void update_animation()
 void toggle_lighting()
 {
     GLOBAL_CONFIG.is_lighting_on = GLOBAL_CONFIG.is_lighting_on ? 0 : 1;
+    update_flags |= UPDATE_FLAG_BRIGHTNESS;
+}
+
+void fire_animation(int index)
+{
+    if (index == ANIM_STARTUP)
+    {
+        for (int i = 0; i < 255; i++)
+        {
+            strip1[i] = CHSV(0, 1, 255);
+            strip2[LED_COUNT_2-(i+1)] = CHSV(0, 1, 255);
+            FastLED.show();
+            delay(2);
+        }
+
+        // for (int i = 0; i < 255; i++)
+        // {
+        //     set_brightness(i);
+        //     delay(2);
+        //     update_lighting(1);
+        // }
+    }
+}
+
+void set_visible(int visible)
+{
+    if (visible)
+    {
+        GLOBAL_CONFIG.is_lighting_on = 1;
+    }
+    else
+    {
+        GLOBAL_CONFIG.is_lighting_on = 0;
+    }
     update_flags |= UPDATE_FLAG_BRIGHTNESS;
 }
 

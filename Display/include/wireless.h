@@ -13,7 +13,8 @@ class CharacteristicCallbacks: public BLECharacteristicCallbacks {
       if (value.length() > 0) {
         Serial.println(value.c_str());
         update_config_from_str(value.append("\r").c_str());
-        set_all_flags();
+        sync();
+        // set_all_flags();
       }
     }
 };
