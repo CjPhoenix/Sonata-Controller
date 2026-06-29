@@ -1,10 +1,11 @@
 #pragma once
 
-#include <Arduino_GFX_Library.h>
 #include <lvgl.h>
 
 #include "touch.h"
 #include "backlight.h"
+
+LGFX lcd;
 
 // Display
 static lv_disp_draw_buf_t draw_buf;
@@ -14,38 +15,25 @@ static lv_disp_drv_t disp_drv;
 // Input
 static lv_indev_drv_t indev_drv;
 
-Arduino_ESP32RGBPanel *bus = new Arduino_ESP32RGBPanel(
-  GFX_NOT_DEFINED /* CS */, GFX_NOT_DEFINED /* SCK */, GFX_NOT_DEFINED /* SDA */,
-  40 /* DE */, 41 /* VSYNC */, 39 /* HSYNC */, 0 /* PCLK */,
-  45 /* R0 */, 48 /* R1 */, 47 /* R2 */, 21 /* R3 */, 14 /* R4 */,
-  5 /* G0 */, 6 /* G1 */, 7 /* G2 */, 15 /* G3 */, 16 /* G4 */, 4 /* G5 */,
-  8 /* B0 */, 3 /* B1 */, 46 /* B2 */, 9 /* B3 */, 1 /* B4 */
-);
+void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
+{
 
-Arduino_RPi_DPI_RGBPanel *lcd = new Arduino_RPi_DPI_RGBPanel(
-  bus,
-  800 /* width */, 0 /* hsync_polarity */, 8 /* hsync_front_porch */, 4 /* hsync_pulse_width */, 43 /* hsync_back_porch */,
-  480 /* height */, 0 /* vsync_polarity */, 8 /* vsync_front_porch */, 4 /* vsync_pulse_width */, 12 /* vsync_back_porch */,
-  1 /* pclk_active_neg */, 16000000 /* prefer_speed */, true /* auto_flush */
-);
+  uint32_t w = (area->x2 - area->x1 + 1);
+  uint32_t h = (area->y2 - area->y1 + 1);
 
-void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
-  uint32_t w = area->x2 - area->x1 + 1;
-  uint32_t h = area->y2 - area->y1 + 1;
 
-  /* Cast the LVGL color buffer directly to the 16-bit pixel array expected
-     by the Arduino_GFX draw function. Using &color_p->full can point to a
-     single member and cause incorrect addressing/stride; casting the base
-     pointer is correct for contiguous pixel data (RGB565). */
-  lcd->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)color_p, w, h);
+  //lcd.fillScreen(TFT_WHITE);
+  lcd.pushImageDMA(area->x1, area->y1, w, h,(lgfx::rgb565_t*)&color_p->full);
+  
   lv_disp_flush_ready(disp);
 }
 
 void my_touchpad_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
-  if (ts.isTouched) {
+  lgfx::v1::touch_point_t tp;
+  if (lcd.getTouchRaw(&tp, 1) > 0) {
     data->state = LV_INDEV_STATE_PR;
-    data->point.x = SCREEN_WIDTH - ts.points[0].x;
-    data->point.y = SCREEN_HEIGHT - ts.points[0].y;
+    data->point.x = tp.x;
+    data->point.y = tp.y;
   } else {
     data->state = LV_INDEV_STATE_REL;
   }
@@ -54,19 +42,24 @@ void my_touchpad_read(lv_indev_drv_t *drv, lv_indev_data_t *data) {
 void display_init() {
   touch_init();
 
-  lcd->begin();
+  lcd.init();
+  lcd.setRotation(0);
   lv_init();
 
-  // allocate buffer (One quarter full screen or some size)
-  disp_draw_buf = (lv_color_t*)heap_caps_malloc(sizeof(lv_color_t) * SCREEN_WIDTH * SCREEN_HEIGHT / 4, MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
-  lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, SCREEN_WIDTH * SCREEN_HEIGHT / 4);
+  // Calculate a safe size: 800 pixels * 16 lines * 2 bytes (RGB565) = 25,600 bytes
+  // We allocate TWO tracking buffers inside fast internal RAM
+  uint32_t buffer_size = 800 * 48 * sizeof(lv_color_t);
+  lv_color_t *buf1 = (lv_color_t *)heap_caps_malloc(buffer_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  lv_color_t *buf2 = (lv_color_t *)heap_caps_malloc(buffer_size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 
-  /* Allocate the LVGL draw buffer in DMA-capable memory so the display
-    driver (which may use DMA) reads valid RAM. Use MALLOC_CAP_DMA. */
-  // disp_draw_buf = (lv_color_t*)heap_caps_malloc(sizeof(lv_color_t) * SCREEN_WIDTH * 40, MALLOC_CAP_DMA | MALLOC_CAP_8BIT);
-  // lv_disp_draw_buf_init(&draw_buf, disp_draw_buf, NULL, SCREEN_WIDTH * 40);
+  if (buf1 == NULL) {
+      while(1) delay(1000); // Halt if allocation failed
+  }
 
+  // Initialize the v8 display buffer descriptor
+  lv_disp_draw_buf_init(&draw_buf, buf1, buf2, 800 * 48);
 
+  
   lv_disp_drv_init(&disp_drv);
   disp_drv.hor_res = SCREEN_WIDTH;
   disp_drv.ver_res = SCREEN_HEIGHT;
@@ -79,6 +72,4 @@ void display_init() {
   indev_drv.type = LV_INDEV_TYPE_POINTER;
   indev_drv.read_cb = my_touchpad_read;
   lv_indev_drv_register(&indev_drv);
-
-  ts.setRotation(ROTATION_NORMAL);
 }

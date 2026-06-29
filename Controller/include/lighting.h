@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #include "config.h"
+#include "lighting_protocol.h"
 
 // ----------------------------------------
 // HARDWARE DEFINITIONS
@@ -22,30 +23,11 @@
 #define UPDATE_FLAG_SATURATION  0x1
 #define UPDATE_FLAG_BRIGHTNESS  0x2
 #define UPDATE_FLAG_HUE         0x4
-#define UPDATE_FLAG_ANIMATION   0x8
 
 // ----------------------------------------
-// ANIMATIONS AND PARAMETERS
+// ANIMATION INDICES
 // ----------------------------------------
-
-// ONE SHOT
 #define ANIM_STARTUP    1
-
-// CONTINUOUS
-#define ANIMATION_PARAMETER_COUNT 4
-
-#define ANIMATION_PULSE_LINEAR  1
-#define AP_PL_FALL animation_params[0]
-#define AP_PL_RISE animation_params[1]
-
-#define ANIMATION_PULSE_EXPONENTIAL 2
-#define AP_PE_FALL_COEF animation_params[0]
-#define AP_PE_FALL_EXP animation_params[1]
-#define AP_PE_RISE_COEF animation_params[2]
-#define AP_PE_RISE_EXP animation_params[3]
-
-#define ANIMATION_RAINBOW 3
-#define AP_RAINBOW_SPEED animation_params[0]
 
 // Lighting updates and timestamps
 bool first_update_called;
@@ -55,22 +37,19 @@ unsigned int update_flags;
 CRGB strip1[LED_COUNT_1];
 CRGB strip2[LED_COUNT_2];
 
-// Variables for animation configuration
-int animation_params[ANIMATION_PARAMETER_COUNT];
-unsigned long animation_start_time;
-
 // ----------------------------------------
 // FUNCTION DEFINITIONS
 // ----------------------------------------
 void lighting_init();
 int update_lighting(int);
-void update_animation();
+void render_leds();
+void apply_lighting_packet(const uint8_t packet[LIGHTING_PACKET_SIZE]);
 
 void fire_animation(int index);
 void set_brightness(int level);
+void set_visible(int);
 void set_hue(int hue);
 void set_saturation(int saturation);
-void set_animation(int animation_index, const int* params, int params_size);
 
 void set_all_flags();
 
@@ -80,11 +59,8 @@ void lighting_init()
     FastLED.addLeds<WS2812, LED_PIN_1, GRB>(strip1, LED_COUNT_1);
     FastLED.addLeds<WS2812, LED_PIN_2, GRB>(strip2, LED_COUNT_2);
 
-    // Set all update flags
     set_all_flags();
-
-    // Set LEDs to off
-    FastLED.setBrightness(0);
+    render_leds();
 }
 
 /**
@@ -94,84 +70,16 @@ int update_lighting(int force_all = 0)
 {
     if (force_all) set_all_flags();
 
-    update_animation();
-
     if (update_flags)
     {
         first_update_called = 1;
-        if (update_flags & (UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION))
+        if (update_flags & (UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION | UPDATE_FLAG_BRIGHTNESS))
         {
-            for (int i = 0; i < LED_COUNT_1; i++)
-            {
-                strip1[i] = CHSV((uint8_t)(GLOBAL_CONFIG.lighting_hue), (uint8_t)(GLOBAL_CONFIG.saturation), 255);
-                strip2[i] = CHSV((uint8_t)(GLOBAL_CONFIG.lighting_hue), (uint8_t)(GLOBAL_CONFIG.saturation), 255);
-            }
-            update_flags &= ~(UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION);
+            render_leds();
+            update_flags &= ~(UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION | UPDATE_FLAG_BRIGHTNESS);
         }
 
-        if (update_flags & UPDATE_FLAG_BRIGHTNESS)
-        {
-            FastLED.setBrightness(GLOBAL_CONFIG.is_lighting_on ? GLOBAL_CONFIG.brightness : 0);
-            update_flags &= ~UPDATE_FLAG_BRIGHTNESS;
-        }
-
-        FastLED.show();
-
-        Serial.println("Lighting updated.");
         return 1;
-    }
-
-    else if (GLOBAL_CONFIG.animation_index)
-    {
-        unsigned long dt = millis() - animation_start_time;
-
-        // ------------------------------------------------------
-        // PULSE LINEAR
-        // ------------------------------------------------------
-        if (GLOBAL_CONFIG.animation_index == ANIMATION_PULSE_LINEAR)
-        {
-            int pulse = dt % (AP_PL_FALL + AP_PL_RISE);
-            if (pulse < AP_PL_FALL)
-            {
-                FastLED.setBrightness(GLOBAL_CONFIG.is_lighting_on ? ((AP_PL_FALL - pulse) * 255) / AP_PL_FALL : 0);
-            }
-            else
-            {
-                FastLED.setBrightness(GLOBAL_CONFIG.is_lighting_on ? ((pulse - AP_PL_FALL) * 255) / AP_PL_RISE : 0);
-            }
-        }
-
-        // ------------------------------------------------------
-        // PULSE EXPONENTIAL
-        // ------------------------------------------------------
-        else if (GLOBAL_CONFIG.animation_index == ANIMATION_PULSE_EXPONENTIAL)
-        {
-            int pulse = dt % (AP_PE_FALL_COEF + AP_PE_RISE_COEF);
-            if (pulse < AP_PE_FALL_COEF)
-            {
-                
-            }
-            else
-            {
-
-            }
-        }
-
-        // ------------------------------------------------------
-        // RAINBOW
-        // ------------------------------------------------------
-        else if (GLOBAL_CONFIG.animation_index == ANIMATION_RAINBOW)
-        {
-            // Map hue from (0 to LED_COUNT_1) to (0 to 255), shift by dt
-            for (int i = 0; i < LED_COUNT_1; i++)
-            {
-                strip1[i] = CHSV(((i * 255 / LED_COUNT_1) + dt) % 255, GLOBAL_CONFIG.saturation, 255);
-                strip2[i] = CHSV(((i * 255 / LED_COUNT_2) + dt) % 255, GLOBAL_CONFIG.saturation, 255);
-            }
-        }
-
-        FastLED.show();
-        return 0;
     }
     else
     {
@@ -179,26 +87,80 @@ int update_lighting(int force_all = 0)
     }
 }
 
-void update_animation()
+void render_leds()
 {
-    if (update_flags & UPDATE_FLAG_ANIMATION)
+    for (int i = 0; i < LED_COUNT_1; i++)
     {
-        if (GLOBAL_CONFIG.animation_index != -1)
+        strip1[i] = CHSV(
+            (uint8_t)GLOBAL_CONFIG.left_hue,
+            (uint8_t)GLOBAL_CONFIG.left_saturation,
+            GLOBAL_CONFIG.left_is_lighting_on ? (uint8_t)GLOBAL_CONFIG.left_brightness : 0
+        );
+    }
+
+    for (int i = 0; i < LED_COUNT_2; i++)
+    {
+        strip2[i] = CHSV(
+            (uint8_t)GLOBAL_CONFIG.right_hue,
+            (uint8_t)GLOBAL_CONFIG.right_saturation,
+            GLOBAL_CONFIG.right_is_lighting_on ? (uint8_t)GLOBAL_CONFIG.right_brightness : 0
+        );
+    }
+
+    FastLED.show();
+}
+
+void apply_lighting_packet(const uint8_t packet[LIGHTING_PACKET_SIZE])
+{
+    uint8_t packet_type;
+    bool enabled;
+    uint8_t target_mask;
+    uint8_t hue;
+    uint8_t sat;
+    uint8_t val;
+    lighting_packet_decode(packet, packet_type, enabled, target_mask, hue, sat, val);
+
+    if (target_mask == 0)
+    {
+        target_mask = LIGHTING_PACKET_TARGET_LEFT | LIGHTING_PACKET_TARGET_RIGHT;
+    }
+
+    if (packet_type == LIGHTING_PACKET_TYPE_COLOR)
+    {
+        if (target_mask & LIGHTING_PACKET_TARGET_LEFT)
         {
-            // New animation started
-            animation_start_time = millis();
+            GLOBAL_CONFIG.left_hue = hue;
+            GLOBAL_CONFIG.left_saturation = sat;
+            GLOBAL_CONFIG.left_brightness = val;
+            GLOBAL_CONFIG.left_is_lighting_on = enabled;
         }
-        else
+
+        if (target_mask & LIGHTING_PACKET_TARGET_RIGHT)
         {
-            // Animation stopped
+            GLOBAL_CONFIG.right_hue = hue;
+            GLOBAL_CONFIG.right_saturation = sat;
+            GLOBAL_CONFIG.right_brightness = val;
+            GLOBAL_CONFIG.right_is_lighting_on = enabled;
         }
-        update_flags &= ~UPDATE_FLAG_ANIMATION;
+    }
+    else if (packet_type == LIGHTING_PACKET_TYPE_BRIGHTNESS)
+    {
+        if (target_mask & LIGHTING_PACKET_TARGET_LEFT)
+        {
+            GLOBAL_CONFIG.left_brightness = val;
+        }
+
+        if (target_mask & LIGHTING_PACKET_TARGET_RIGHT)
+        {
+            GLOBAL_CONFIG.right_brightness = val;
+        }
     }
 }
 
 void toggle_lighting()
 {
-    GLOBAL_CONFIG.is_lighting_on = GLOBAL_CONFIG.is_lighting_on ? 0 : 1;
+    GLOBAL_CONFIG.left_is_lighting_on = GLOBAL_CONFIG.left_is_lighting_on ? 0 : 1;
+    GLOBAL_CONFIG.right_is_lighting_on = GLOBAL_CONFIG.right_is_lighting_on ? 0 : 1;
     update_flags |= UPDATE_FLAG_BRIGHTNESS;
 }
 
@@ -213,59 +175,38 @@ void fire_animation(int index)
             FastLED.show();
             delay(2);
         }
-
-        // for (int i = 0; i < 255; i++)
-        // {
-        //     set_brightness(i);
-        //     delay(2);
-        //     update_lighting(1);
-        // }
     }
 }
 
 void set_visible(int visible)
 {
-    if (visible)
-    {
-        GLOBAL_CONFIG.is_lighting_on = 1;
-    }
-    else
-    {
-        GLOBAL_CONFIG.is_lighting_on = 0;
-    }
+    GLOBAL_CONFIG.left_is_lighting_on = visible;
+    GLOBAL_CONFIG.right_is_lighting_on = visible;
     update_flags |= UPDATE_FLAG_BRIGHTNESS;
 }
 
 void set_brightness(int level)
 {
-    GLOBAL_CONFIG.brightness = level;
+    GLOBAL_CONFIG.left_brightness = level;
+    GLOBAL_CONFIG.right_brightness = level;
     update_flags |= UPDATE_FLAG_BRIGHTNESS;
 }
 
 void set_hue(int hue)
 {
-    GLOBAL_CONFIG.lighting_hue = hue;
+    GLOBAL_CONFIG.left_hue = hue;
+    GLOBAL_CONFIG.right_hue = hue;
     update_flags |= UPDATE_FLAG_HUE;
 }
 
 void set_saturation(int saturation)
 {
-    GLOBAL_CONFIG.saturation = saturation;
+    GLOBAL_CONFIG.left_saturation = saturation;
+    GLOBAL_CONFIG.right_saturation = saturation;
     update_flags |= UPDATE_FLAG_SATURATION;
-}
-
-void set_animation(int animation_index, const int* params, int params_size)
-{
-    GLOBAL_CONFIG.animation_index = animation_index;
-    update_flags |= UPDATE_FLAG_ANIMATION;
-
-    for (int i = 0; i < params_size; i++)
-    {
-        animation_params[i] = *(params + i);
-    }
 }
 
 void set_all_flags()
 {
-    update_flags = UPDATE_FLAG_BRIGHTNESS | UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION | UPDATE_FLAG_ANIMATION;
+    update_flags = UPDATE_FLAG_BRIGHTNESS | UPDATE_FLAG_HUE | UPDATE_FLAG_SATURATION;
 }

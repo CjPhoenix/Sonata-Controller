@@ -6,11 +6,15 @@
 #define CONFIG_FILE         "/.cfg"
 
 typedef struct {
-    int lighting_hue;
-    int saturation;
-    int brightness;
+    uint8_t hue_l;
+    uint8_t sat_l;
+    uint8_t val_l;
+
+    uint8_t hue_r;
+    uint8_t sat_r;
+    uint8_t val_r;
+
     int is_lighting_on;
-    int animation_index;
 } Config;
 static Config GLOBAL_CONFIG;
 
@@ -37,12 +41,14 @@ int config_init()
 void export_global_config_to_string(char** result)
 {
     snprintf(*result, CONFIG_BUFFER_SIZE, 
-        "%d %d %d %d %d\r", 
-        GLOBAL_CONFIG.lighting_hue,
-        GLOBAL_CONFIG.saturation,
-        GLOBAL_CONFIG.brightness,
-        GLOBAL_CONFIG.is_lighting_on,
-        GLOBAL_CONFIG.animation_index
+        "%d %d %d %d %d %d %d\r", 
+        GLOBAL_CONFIG.hue_l,
+        GLOBAL_CONFIG.sat_l,
+        GLOBAL_CONFIG.val_l,
+        GLOBAL_CONFIG.hue_r,
+        GLOBAL_CONFIG.sat_r,
+        GLOBAL_CONFIG.val_r,
+        GLOBAL_CONFIG.is_lighting_on
     );
 }
 
@@ -72,11 +78,13 @@ void update_config_from_str(String text)
 void update_config_from_buffer()
 {
     sscanf(CONFIG_BUFFER, 
-        "%d %d %d %d %d\r", 
-        &GLOBAL_CONFIG.lighting_hue,
-        &GLOBAL_CONFIG.saturation,
-        &GLOBAL_CONFIG.brightness,
-        &GLOBAL_CONFIG.is_lighting_on,
-        &GLOBAL_CONFIG.animation_index
+        "%d %d %d %d %d %d %d\r", 
+        &GLOBAL_CONFIG.hue_l,
+        &GLOBAL_CONFIG.sat_l,
+        &GLOBAL_CONFIG.val_l,
+        &GLOBAL_CONFIG.hue_r,
+        &GLOBAL_CONFIG.sat_r,
+        &GLOBAL_CONFIG.val_r,
+        &GLOBAL_CONFIG.is_lighting_on
     );
 }

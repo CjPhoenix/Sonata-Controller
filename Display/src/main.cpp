@@ -1,6 +1,8 @@
 #include <lvgl.h>
 #include <Wire.h>
 
+// #define WIDGETS_OLD
+
 #include "widgets.h"
 #include "display.h"
 #include "wireless.h"
@@ -15,37 +17,53 @@ void startup();
 
 lv_obj_t* screen;
 
+void GuiTask(void *pvParameters);
+
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Starting setup...");
 
   if (!config_init())
+    // write_config_to_file();
     update_config_from_file();
 
   wireless_init();
 
   screen_init();
 
+  xTaskCreatePinnedToCore(
+    GuiTask,     /* Task function */
+    "GuiTask",   /* Name of task */
+    8192,        /* Stack size in words */
+    NULL,        /* Task input parameter */
+    2,           /* Priority of the task */
+    NULL,        /* Task handle */
+    1            /* Pin to Core 1 */
+  );
+
   controller_init();
 
   startup();
 
   Serial.println("Setup complete. Starting loop.");
+
+  update_lighting(1, 1, 0, 255, 255, 1);
 }
 
-char *preview_text = (char*) malloc(sizeof(char) * 128);
+void GuiTask(void *pvParameters) {
+  while (1) {
+    lv_timer_handler();
+    vTaskDelay(pdMS_TO_TICKS(5));
+  }
+}
+
 void loop()
 {
-  // Update led strip lighting and display preview to match
-  lv_obj_set_style_shadow_color(toggle_button, lv_color_hsv_to_rgb(GLOBAL_CONFIG.lighting_hue * 360 / 255, GLOBAL_CONFIG.saturation * 100 / 255, GLOBAL_CONFIG.brightness * GLOBAL_CONFIG.is_lighting_on * 100 / 255), LV_PART_MAIN);
+  touch_touched();
+  sleep_backlight_if_inactive(touch_has_signal());
 
-  lv_timer_handler();
-
-  ts.read();
-  sleep_backlight_if_inactive(ts.isTouched);
-
-  delay(5);
+  delay(30);
 }
 
 // -------------------
@@ -55,10 +73,7 @@ void screen_init()
 {
   display_init();
 
-  // Main screen object
   screen = lv_scr_act();
-  lv_obj_set_style_bg_color(screen, C_BACKGROUND, LV_PART_MAIN);
-
   widgets_init(screen);
 
   backlight_init();
@@ -66,20 +81,5 @@ void screen_init()
 
 void startup()
 {
-  // Set screen image
-
-  // Send global config
-  sync();
-  
-  // Lighting animation
-  fire_animation(ANIM_STARTUP);
-
-  // for (int i = 0; i < 255; i++)
-  // {
-  //   set_brightness(i);
-  //   delay(2);
-  //   update_lighting(1);
-  // }
-
-  // Clear screen image
+  // update_lighting_from_config();
 }
